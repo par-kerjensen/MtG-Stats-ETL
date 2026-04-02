@@ -1,9 +1,9 @@
-import extract_data
+import mtgtop8
+import scryfall
 
 def main():
-    #scryfall_data = extract_data.get_scryfall_data()
-    #scryfall_data.info()
-    event_data = extract_data.scrape_mtgtop8_data()
+    #scryfall_data = scryfall.get_scryfall_data()
+    event_data = mtgtop8.scrape_mtgtop8_data()
 
 if __name__ =="__main__":
     main()
