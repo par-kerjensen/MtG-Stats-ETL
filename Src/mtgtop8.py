@@ -15,12 +15,19 @@ def scrape_mtgtop8_data():
     page_count = find_page_count(url_fragment)
     decks = []
     for i in range(1, page_count + 1):
+        print("fetching events on page")
         event_links = get_events(url_fragment + str(i))
         for event in event_links:
+            print("fetching decklist links from event")
             decklist_links = get_decklist_links("https://www.mtgtop8.com/" + event)
             for deck in decklist_links:
-                decks.append(get_decklist_from_link("https://mtgtop8.com/event" + deck))
-    return decks
+                print("fetching decks from decklist link")
+                decklist = get_decklist_from_link("https://mtgtop8.com/event" + deck)
+                if decklist is not None:
+                    decks.append(decklist)
+    df = pd.DataFrame(decks)
+    print(df.info())
+    return df
 
 #Iterates over page buttons on events column
 #Returns number of pages
@@ -67,6 +74,7 @@ def get_decklist_links(url):
     links = links[::2]
     del links[0]
     links = [a.get('href') for a in links]
+    return links
 
 #Get decklist from a given decklist url
 #Returns a dictionary of decklist data broken down into its component parts
@@ -75,6 +83,20 @@ def get_decklist_from_link(url):
         response = requests.get(url)
         response.raise_for_status()
     except:
-        raise Exception(f'There was an error getting the decklist data')
+        print("decklist couldn't be found, most likely a network issue.")
+        return None
     soup = BeautifulSoup(response.text, "html.parser")
+    title = soup.body.find('a', class_ = 'player_big').parent.text.split()
+    deck_name = " ".join(title[1:-2])
+    event_name = soup.body.find('div', class_ = "event_title").text
+    player_name = soup.body.find('a', class_ = 'player_big').text
+    maindeck_list = [i.text for i in soup.find_all('div', attrs = {'style': 'margin:3px;flex:1;'})[0].find_all('div', class_ = "deck_line hover_tr")] + [i.text for i in soup.find_all('div', attrs = {'style': 'margin:3px;flex:1;'})[1].find_all('div', class_ = "deck_line hover_tr")]
+    maindeck_list = [i.split(" ", 1) for i in maindeck_list]
+    maindeck = {i[1] : i[0] for i in maindeck_list}
 
+    sideboard_list = [i.text for i in soup.find_all('div', attrs = {'style': 'margin:3px;flex:1;'})[2].find_all('div', class_ = "deck_line hover_tr")]
+    sideboard_list = [i.split(" ", 1) for i in sideboard_list]
+    sideboard = {i[1] : i[0] for i in sideboard_list}
+    deck = {"Name" : deck_name, "Event" : event_name, "Player": player_name, "Main Deck": maindeck, "Sideboard": sideboard}
+    return deck
+    
