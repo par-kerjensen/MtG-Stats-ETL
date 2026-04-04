@@ -1,17 +1,8 @@
 import pandas as pd
 import requests
-import json
 from bs4 import BeautifulSoup
 
-#outline for scraper here:
-#Firstly, find the number of pages in the past events data using bs4
-#iterate over each page and scrape every event link
-#Each event link contains several more individual decklist links, compile those into a list
-#Scrape the decklist from each link, including name, maindeck subdivided by card type, and sideboard
-#Conver the list of decklists into a dataframe and return it to the main file.
-
-def scrape_mtgtop8_data():
-    url_fragment = "https://www.mtgtop8.com/format?f=ST&meta=46&cp="
+def scrape_mtgtop8_data(url_fragment):
     page_count = find_page_count(url_fragment)
     decks = []
     for i in range(1, page_count + 1):
@@ -41,6 +32,7 @@ def find_page_count(url_fragment):
             raise Exception(f'There was an error in finding the page count')
         soup = BeautifulSoup(response.text, "html.parser")
 
+        #Finds the button right before the 'next' button and records its number
         high_page = soup.find('div', string = "Next").previous
         if high_page == largest_page:
             break
@@ -57,6 +49,8 @@ def get_events(url):
     except:
         raise Exception(f'There was an error in getting the event links')
     soup = BeautifulSoup(response.text, "html.parser")
+
+    #Navigates to table of event links, extracts all <a> tags, uses list comprehension to put all url fragments in list
     links = [a.get('href') for a in soup.table.find_all('table')[1].find_all('a', href = True)]
     return(links)
 
@@ -70,6 +64,8 @@ def get_decklist_links(url):
     except:
         raise Exception(f'There was an error in getting the decklist links')
     soup = BeautifulSoup(response.text, "html.parser")
+    
+    #Navigates to decklist pane and finds all decklist links
     links = soup.body.find('div', attrs={"style" : "width:25%;"}).find_all('a', href = True, class_ = None)
     links = links[::2]
     del links[0]
@@ -86,17 +82,27 @@ def get_decklist_from_link(url):
         print("decklist couldn't be found, most likely a network issue.")
         return None
     soup = BeautifulSoup(response.text, "html.parser")
+
+    #Navigates to top pane and finds title pane, extracts deck name from it
     title = soup.body.find('a', class_ = 'player_big').parent.text.split()
     deck_name = " ".join(title[1:-2])
+
+    #Navigates to title pane and finds event name
     event_name = soup.body.find('div', class_ = "event_title").text
+
+    #Navigates to title pane and finds player name
     player_name = soup.body.find('a', class_ = 'player_big').text
+
+    #Navigates to first two columns of decklist and extracts cards + their count, stores as a dictionary of cardname : count
     maindeck_list = [i.text for i in soup.find_all('div', attrs = {'style': 'margin:3px;flex:1;'})[0].find_all('div', class_ = "deck_line hover_tr")] + [i.text for i in soup.find_all('div', attrs = {'style': 'margin:3px;flex:1;'})[1].find_all('div', class_ = "deck_line hover_tr")]
     maindeck_list = [i.split(" ", 1) for i in maindeck_list]
     maindeck = {i[1] : i[0] for i in maindeck_list}
 
+    #Navigates to last column of decklist and extracts cards + their count, stores as a dictionary of cardname : count
     sideboard_list = [i.text for i in soup.find_all('div', attrs = {'style': 'margin:3px;flex:1;'})[2].find_all('div', class_ = "deck_line hover_tr")]
     sideboard_list = [i.split(" ", 1) for i in sideboard_list]
     sideboard = {i[1] : i[0] for i in sideboard_list}
+
     deck = {"Name" : deck_name, "Event" : event_name, "Player": player_name, "Main Deck": maindeck, "Sideboard": sideboard}
     return deck
     
