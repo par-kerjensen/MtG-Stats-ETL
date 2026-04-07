@@ -1,21 +1,28 @@
 import utils.mtgtop8
 import utils.scryfall
+import utils.transform
 
 def main():
+    card_df= extract()
 
-    extract()
-
-    #transform()
+    #enriched_cards = transform(card_df)
 
     #load()
 
+
+#TODO change structure to allow for format versatility, eventually expand to modern
 def extract():
     #Get list of all standard cards with appropriate data
     scryfall_data = utils.scryfall.get_scryfall_data()
     #Given URL is for large standard events of the last 2 months, easily exchanged with data for Modern
     #Maybe in the future
-    #event_data = utils.mtgtop8.scrape_mtgtop8_data("https://www.mtgtop8.com/format?f=ST&meta=46&cp=")
-#def transform():
+    event_data = utils.mtgtop8.scrape_mtgtop8_data("https://www.mtgtop8.com/format?f=ST&meta=46&cp=", scryfall_data)
+    print(event_data.info())
+    print(event_data.head())
+    #return event_data
+
+#def transform(card_df, scryfall_df):
+    #enriched_cards = utils.transform.enrich_data(card_df, scryfall_df)
 #do transformations here, potentially with more data sources (though I'm not sure what would be best, this seems pretty comprehensive)
 
 #def load():

@@ -2,7 +2,7 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
-def scrape_mtgtop8_data(url_fragment):
+def scrape_mtgtop8_data(url_fragment, scryfall_data):
     page_count = find_page_count(url_fragment)
     decks = []
     for i in range(1, page_count + 1):
@@ -13,11 +13,10 @@ def scrape_mtgtop8_data(url_fragment):
             decklist_links = get_decklist_links("https://www.mtgtop8.com/" + event)
             for deck in decklist_links:
                 print("fetching decks from decklist link")
-                decklist = get_decklist_from_link("https://mtgtop8.com/event" + deck)
+                decklist = get_decklist_from_link("https://mtgtop8.com/event" + deck, scryfall_data)
                 if decklist is not None:
                     decks.append(decklist)
     df = pd.DataFrame(decks)
-    print(df.info())
     return df
 
 #Iterates over page buttons on events column
@@ -74,7 +73,7 @@ def get_decklist_links(url):
 
 #Get decklist from a given decklist url
 #Returns a dictionary of decklist data broken down into its component parts
-def get_decklist_from_link(url):
+def get_decklist_from_link(url, scryfall_data):
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -96,12 +95,37 @@ def get_decklist_from_link(url):
     #Navigates to first two columns of decklist and extracts cards + their count, stores as a dictionary of cardname : count
     maindeck_list = [i.text for i in soup.find_all('div', attrs = {'style': 'margin:3px;flex:1;'})[0].find_all('div', class_ = "deck_line hover_tr")] + [i.text for i in soup.find_all('div', attrs = {'style': 'margin:3px;flex:1;'})[1].find_all('div', class_ = "deck_line hover_tr")]
     maindeck_list = [i.split(" ", 1) for i in maindeck_list]
-    maindeck = {i[1] : i[0] for i in maindeck_list}
 
+    #Removing excess whitespace, fixing name scheme of 'room' subtype cards, which aren't represented properly on mtgtop8
+    for entry in maindeck_list:
+        entry[1] = entry[1].strip()
+        if "/" in entry[1]:
+            entry[1] = entry[1].split(" / ")[0]
+    maindeck = []
+
+    #Grab scryfall info on card as dictionary and add name + count, add to list of all dictionaries
+    for entry in maindeck_list:
+        card = scryfall_data.loc[entry[1]].to_dict()
+        dict = {'name': entry[1], 'count': entry[0]}
+        dict.update(card)
+        maindeck.append(dict)
     #Navigates to last column of decklist and extracts cards + their count, stores as a dictionary of cardname : count
     sideboard_list = [i.text for i in soup.find_all('div', attrs = {'style': 'margin:3px;flex:1;'})[2].find_all('div', class_ = "deck_line hover_tr")]
     sideboard_list = [i.split(" ", 1) for i in sideboard_list]
-    sideboard = {i[1] : i[0] for i in sideboard_list}
+
+    #Removing excess whitespace, fixing name scheme of 'room' subtype cards, which aren't represented properly on mtgtop8
+    for entry in sideboard_list:
+        entry[1] = entry[1].strip()
+        if "/" in entry[1]:
+            entry[1] = entry[1].split(" / ")[0]
+    sideboard = []
+
+    #Grab scryfall info on card as dictionary and add name + count, add to list of all dictionaries
+    for entry in sideboard_list:
+        card = scryfall_data.loc[entry[1]].to_dict()
+        dict = {'name': entry[1], 'count': entry[0]}
+        dict.update(card)
+        sideboard.append(dict)
 
     deck = {"Name" : deck_name, "Event" : event_name, "Player": player_name, "Main Deck": maindeck, "Sideboard": sideboard}
     return deck
