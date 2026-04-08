@@ -105,7 +105,11 @@ def get_decklist_from_link(url, scryfall_data):
 
     #Grab scryfall info on card as dictionary and add name + count, add to list of all dictionaries
     for entry in maindeck_list:
-        card = scryfall_data.loc[entry[1]].to_dict()
+        try:
+            card = scryfall_data.loc[entry[1]].to_dict()
+        except KeyError:
+            print("Error during Card Fetching, Returning None")
+            return None
         dict = {'name': entry[1], 'count': entry[0]}
         dict.update(card)
         maindeck.append(dict)
@@ -122,11 +126,14 @@ def get_decklist_from_link(url, scryfall_data):
 
     #Grab scryfall info on card as dictionary and add name + count, add to list of all dictionaries
     for entry in sideboard_list:
-        card = scryfall_data.loc[entry[1]].to_dict()
+        try:
+            card = scryfall_data.loc[entry[1]].to_dict()
+        except KeyError:
+            print("Error during Card Fetching, Returning None")
+            return None
         dict = {'name': entry[1], 'count': entry[0]}
         dict.update(card)
         sideboard.append(dict)
-
     deck = {"Name" : deck_name, "Event" : event_name, "Player": player_name, "Main Deck": maindeck, "Sideboard": sideboard}
     return deck
     

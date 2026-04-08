@@ -2,10 +2,12 @@ import utils.mtgtop8
 import utils.scryfall
 import utils.transform
 
-def main():
-    card_df= extract()
+import pandas as pd
 
-    #enriched_cards = transform(card_df)
+def main():
+    card_df = extract()
+    card_df.to_parquet('test.parquet')
+    #enriched_cards = transform(test_df)
 
     #load()
 
@@ -19,10 +21,12 @@ def extract():
     event_data = utils.mtgtop8.scrape_mtgtop8_data("https://www.mtgtop8.com/format?f=ST&meta=46&cp=", scryfall_data)
     print(event_data.info())
     print(event_data.head())
-    #return event_data
+    return event_data
 
-#def transform(card_df, scryfall_df):
-    #enriched_cards = utils.transform.enrich_data(card_df, scryfall_df)
+
+def transform(card_df):
+    enriched_cards = utils.transform.enrich_data(card_df)
+
 #do transformations here, potentially with more data sources (though I'm not sure what would be best, this seems pretty comprehensive)
 
 #def load():

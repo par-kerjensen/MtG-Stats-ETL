@@ -32,7 +32,7 @@ def get_scryfall_data():
     standard_cards = scryfall_cards[legality_frame['standard'] == 'legal']
 
     #Trim useless fields to only the ones used for analytics, clean output
-    standard_cards = standard_cards[['name', 'cmc', 'mana_cost', 'type_line', 'color_identity', 'oracle_text', 'power', 'toughness', 'usd']]
+    standard_cards = standard_cards[['name', 'cmc', 'mana_cost', 'type_line', 'color_identity', 'power', 'toughness', 'usd']]
     standard_cards['name'] = standard_cards['name'].str.split(" // ").str[0]
     standard_cards = standard_cards.set_index('name').sort_values(by='name').rename(columns = {'usd': 'price'})
 
